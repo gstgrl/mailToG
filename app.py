@@ -5,6 +5,12 @@ import base64
 from supabase_client import supabase_exp
 from functions.states_letters import state_letter
 from functions.utils import generate_qr
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
+
+URL = os.getenv("URL")
 
 app = Flask(__name__)
 
@@ -42,7 +48,7 @@ def create_QR():
         response_qr = generate_qr(qrid)
 
 
-        url = f"http://127.0.0.1:5000/{qrid}"
+        url = f"{URL}/{qrid}"
         data = request.args.get("data", response_qr["qr_data"])
 
 
@@ -56,7 +62,7 @@ def qr_manager():
 
 @app.route("/qrManager/generate_qr/<int:qrid>")
 def generate_qr_for_status(qrid):
-    qr_data = f"http://127.0.0.1:5000/{qrid}"
+    qr_data = f"{URL}/{qrid}"
     img = qrcode.make(qr_data)
 
     buffered = BytesIO()
