@@ -16,24 +16,24 @@
             </div>
 
             {% for qrcode in data %}
-                <div class="card m-2 mx-auto bg-dark-subtle">
-                    <div class="card-body d-flex flex-row justify-content-between align-items-center">
+                <div class="card m-2 mx-auto bg-dark-subtle" style="width: 22rem;">
 
-                        <div class="d-flex flex-row">
-                            <span class="badge align-self-center {{ badge.get(qrcode.status, 'bg-dark').class }} p-2 mx-2">
-                                {{ badge.get(qrcode.status, 'Non attivo').label }}
-                            </span>
+                    <div class="card-header d-flex flex-row justify-content-between">
+                        <span class="badge align-self-center {{ badge.get(qrcode.status, 'bg-dark').class }} p-2 mx-2">
+                            {{ badge.get(qrcode.status, 'Non attivo').label }}
+                        </span>
+                        <button type="button" class="btn-close align-self-center" id="qr-close-button-{{ qrcode.id }}" onclick="hideQR('{{ qrcode.id }}')" style="display: none;"></button>
+                    </div>
+
+                    <div class="card-body d-flex flex-row justify-content-center align-items-center">
+                        <div class="d-flex flex-column">
                             <button type="button" class="btn btn-light mx-2" id="qr-button-{{ qrcode.id }}" onclick="generateQR('{{ qrcode.id }}')">Visualizza QrCode</button>
-                            <div class="ms-5" id="qr-container-{{ qrcode.id }}"></div>
-                            <button type="button" class="btn-close align-self-center ms-4" id="qr-close-button-{{ qrcode.id }}" onclick="hideQR('{{ qrcode.id }}')" style="display: none;"></button>
+                            <div id="qr-container-{{ qrcode.id }}"></div>
                         </div>
+                    </div>
 
-                        {% if badge[qrcode.status].function %}
-                            <button class="btn btn-sm btn-outline-primary align-self-center"
-                                    onclick="{{ badge[qrcode.status].function }}({{ qrcode.id }}, {{ sender }})">
-                                Attiva QR Code
-                            </button>
-                        {% endif %}
+                    <div class="card-footer">
+                        {{ badge[qrcode.status]['time']['label'] }} {{ qrcode[badge[qrcode.status]['time']['column']] | format_datetime }}
                     </div>
                 </div>
             {% endfor %}
@@ -55,7 +55,6 @@
                 .catch(err => console.error("Errore:", err));
             }
 
-            
             function hideQR(id) {
                 const btn = document.getElementById(`qr-button-${id}`);
                 const closeBtn = document.getElementById(`qr-close-button-${id}`);
@@ -65,23 +64,6 @@
                 closeBtn.style.display = "none";
                 qrContainer.innerHTML = "";
             }
-
-            async function activateQRCode(id, sender) {
-                try {
-                    const response = await fetch(`/status/modify/${id}/${sender}`);
-
-                    const data = await response.json();
-
-                    if (data.success) {
-                        console.log("Stato aggiornato con successo");
-                    } else {
-                        console.error("Errore: aggiornamento fallito");
-                    }
-                } catch (error) {
-                    console.error("Errore di rete o di parsing:", error);
-                }
-            }
-
         </script>
     </body>
 </html>

@@ -5,9 +5,11 @@ from supabase_client import supabase_exp
 from functions.states_letters import state_letter
 from functions.utils import generate_qr
 from dotenv import load_dotenv
+from babel.dates import format_datetime as babel_format_datetime
 import qrcode
 import base64
 import os
+import pytz
 
 load_dotenv()
 
@@ -117,9 +119,9 @@ def status():
 
             badge = {
                 "disabled": {"class": "bg-secondary", "label": "Non attivo", "function": "activateQRCode"},
-                "activated": {"class": "bg-primary", "label": "Attivo"},
-                "in transit": {"class": "bg-warning", "label": "In transito"},
-                "delivered": {"class": "bg-success", "label": "Consegnato"}
+                "activated": {"class": "bg-primary", "label": "Attivo", "time": {"label": "Attivato il: ", "column": "activated_at"}},
+                "in transit": {"class": "bg-warning", "label": "In transito", "time": {"label": "Spedito il: ", "column": "sent_at"}},
+                "delivered": {"class": "bg-success", "label": "Consegnato", "time": {"label": "Arrivato il: ", "column": "delivered_at"}}
             }
 
             if response.data and len(response.data) > 0: 
@@ -132,16 +134,42 @@ def status():
     
     return render_template("pin_form.html")
 
-@app.route("/status/modify/<int:id>/<int:sender>")
-def modify_status(id, sender):
+@app.route("/qrCodeList")
+def qr_codes_list():
+    response = (supabase_exp.table("QrCode").select("*").is_("sender", "null").order("status", desc=False).execute())
+
+    badge = {
+        "disabled": {"class": "bg-secondary", "label": "Non attivo", "function": "activateQRCode"},
+        "activated": {"class": "bg-primary", "label": "Attivo", "time": {"label": "Attivato il: ", "column": "activated_at"}},
+        "in transit": {"class": "bg-warning", "label": "In transito", "time": {"label": "Spedito il: ", "column": "sent_at"}},
+        "delivered": {"class": "bg-success", "label": "Consegnato", "time": {"label": "Arrivato il: ", "column": "delivered_at"}}
+    }
+
+    if response.data and len(response.data) > 0: 
+        return render_template("qr_codes_list.html", data=response.data, badge=badge)
+    else:
+        return render_template("error_message.html", error="Nessuna QRcode inattivo!", redirect="qrManager")
+
+@app.route("/status/modify/<int:id>")
+def modify_status(id):
     now_utc = datetime.now(timezone.utc).isoformat() 
-    response = (supabase_exp.table("QrCode").update({"status": "activated", "activated_at": now_utc}).eq("id", id).eq("sender", sender).execute())
+    response = (supabase_exp.table("QrCode").update({"status": "activated", "activated_at": now_utc}).eq("id", id).execute())
 
     if response.data and len(response.data) > 0: 
         return jsonify({"success": True})
     else:
         return jsonify({"success": False}), 404
     
+@app.template_filter("format_datetime")
+def format_datetime_it(value, format="d MMMM yyyy, HH:mm"):
+    try:
+        dt = datetime.fromisoformat(value)
+        local_tz = pytz.timezone("Europe/Rome")
+        dt = dt.astimezone(local_tz)
+        return babel_format_datetime(dt, format, locale="it_IT")
+    except Exception:
+        return "Data non valida"
+
 @app.route("/test")
 def test():
     return render_template("success_message.html", message="Che test ragazzi") 
