@@ -1,11 +1,12 @@
 from flask import Flask, jsonify, render_template, request, send_file
-import qrcode
+from datetime import datetime, timezone
 from io import BytesIO
-import base64
 from supabase_client import supabase_exp
 from functions.states_letters import state_letter
 from functions.utils import generate_qr
 from dotenv import load_dotenv
+import qrcode
+import base64
 import os
 
 load_dotenv()
@@ -14,7 +15,17 @@ URL = os.getenv("URL")
 
 app = Flask(__name__)
 
-static_pin = 2203
+sender_id = {
+    "user_1": {
+        "id": 112654,
+        "name": "Gabriele Giustozzi"
+    },
+
+    "user_2": {
+        "id": 220906,
+        "name": "Giorgia D'Ortona"
+    }
+}
 
 @app.route("/", methods=["GET", "POST"])
 def home():
@@ -23,18 +34,18 @@ def home():
 @app.route("/<int:qrid>", methods=["GET", "POST"])
 def check_mail(qrid):
     if request.method == "POST":
-        pin = request.form.get("pin")
+        sender = request.form.get("pin")
         
-        if int(pin) == static_pin: 
+        if int(sender) == sender_id["user_1"]["id"] or int(sender) == sender_id["user_2"]["id"]: 
             response = ( supabase_exp.table("QrCode").select().eq("id", qrid).single().execute())
 
             if response.data and len(response.data) > 0: 
-                result = state_letter(response.data['status'], qrid)
+                result = state_letter(response.data['status'], qrid, sender)
                 return render_template(result["template"], message=result["message"]) 
             else:
-                return render_template("error_message.html", error="Errore di connessione al database", id=qrid)
+                return render_template("error_message.html", error="Errore di connessione al database", redirect=str(qrid))
         else:
-            return render_template("error_message.html", error="Pin errato, riporva!", id=qrid)
+            return render_template("error_message.html", error="Pin errato, riporva!", redirect=str(qrid))
 
     
     return render_template("pin_form.html")
@@ -96,29 +107,40 @@ def download_qr(data):
         mimetype="image/png"
     )
     
-@app.route("/status")
+@app.route("/status", methods=["GET", "POST"])
 def status():
-    response = (supabase_exp.table("QrCode").select("*").execute())
+    if request.method == "POST":
+        sender = request.form.get("pin")
 
-    badge_classes = {
-        "disabled": "bg-secondary",
-        "activated": "bg-primary",
-        "in transit": "bg-warning",
-        "delivered": "bg-success"
-    }
+        if int(sender) == sender_id["user_1"]["id"] or int(sender) == sender_id["user_2"]["id"]: 
+            response = (supabase_exp.table("QrCode").select("*").eq("sender", int(sender)).order("status", desc=False).execute())
 
-    badge_labels = {
-        "disabled": "Non attivo",
-        "activated": "Attivo",
-        "in transit": "In transito",
-        "delivered": "Consegnato"
-    }
+            badge = {
+                "disabled": {"class": "bg-secondary", "label": "Non attivo", "function": "activateQRCode"},
+                "activated": {"class": "bg-primary", "label": "Attivo"},
+                "in transit": {"class": "bg-warning", "label": "In transito"},
+                "delivered": {"class": "bg-success", "label": "Consegnato"}
+            }
 
+            if response.data and len(response.data) > 0: 
+                return render_template("status.html", data=response.data, badge=badge, sender=int(sender))
+            else:
+                return render_template("error_message.html", error="Nessuna lettere spedita da te!", redirect="qrManager")
+            
+        else:
+            return render_template("error_message.html", error="User id inesistente, riporva!", redirect="qrManager")
+    
+    return render_template("pin_form.html")
+
+@app.route("/status/modify/<int:id>/<int:sender>")
+def modify_status(id, sender):
+    now_utc = datetime.now(timezone.utc).isoformat() 
+    response = (supabase_exp.table("QrCode").update({"status": "activated", "activated_at": now_utc}).eq("id", id).eq("sender", sender).execute())
 
     if response.data and len(response.data) > 0: 
-        return render_template("status.html", data=response.data, badge_classes=badge_classes, badge_labels=badge_labels)
+        return jsonify({"success": True})
     else:
-        return render_template("error_message.html", error="Errore di connessione con il database!") 
+        return jsonify({"success": False}), 404
     
 @app.route("/test")
 def test():
