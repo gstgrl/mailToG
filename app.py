@@ -122,9 +122,7 @@ def status():
     
 @app.route("/test")
 def test():
-    data = generate_qr("200")
-    print(data["qr"])
-    return jsonify(data)
+    return render_template("success_message.html", message="Che test ragazzi") 
 
 if __name__ == '__main__':
     app.run(debug=True)
