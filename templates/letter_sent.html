@@ -9,10 +9,10 @@
     </head>
     <body class="bg-dark text-light min-vh-100 d-flex justify-content-center align-items-center">
         <div class="container text-center">
-            <h1>QRcode Page</h1>
+            <h1>Status Page</h1>
 
             <div class="mt-2 mb-5">
-                <a class="btn btn-primary" href="/qrManager">Torna alla home</a>
+                <a class="btn btn-primary" href="/qrManager">Torna indietro</a>
             </div>
 
             {% for qrcode in data %}
@@ -32,19 +32,8 @@
                         </div>
                     </div>
 
-                    
-                    
                     <div class="card-footer">
-                        {% if badge[qrcode.status].time %}
-                            {{ badge[qrcode.status]['time']['label'] }} {{ qrcode[badge[qrcode.status]['time']['column']] | format_datetime }}
-                        {% endif %}
-
-                        {% if badge[qrcode.status].function %}
-                            <button class="btn btn-sm btn-outline-primary align-self-center"
-                                    onclick="{{ badge[qrcode.status].function }}({{ qrcode.id }})">
-                                Attiva QR Code
-                            </button>
-                        {% endif %}
+                        {{ badge[qrcode.status]['time']['label'] }} {{ qrcode[badge[qrcode.status]['time']['column']] | format_datetime }}
                     </div>
                 </div>
             {% endfor %}
@@ -74,22 +63,6 @@
                 btn.style.display = "block";
                 closeBtn.style.display = "none";
                 qrContainer.innerHTML = "";
-            }
-
-            async function activateQRCode(id) {
-                try {
-                    const response = await fetch(`/status/modify/${id}`);
-
-                    const data = await response.json();
-
-                    if (data.success) {
-                        console.log("Stato aggiornato con successo");
-                    } else {
-                        console.error("Errore: aggiornamento fallito");
-                    }
-                } catch (error) {
-                    console.error("Errore di rete o di parsing:", error);
-                }
             }
         </script>
     </body>
