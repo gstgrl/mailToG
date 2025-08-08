@@ -1,6 +1,7 @@
 from flask import jsonify
-import qrcode
 from io import BytesIO
+from dotenv import load_dotenv
+import qrcode
 import base64
 
 load_dotenv()
@@ -8,7 +9,7 @@ load_dotenv()
 URL = os.getenv("URL")
 
 def generate_qr(qrid):
-    qr_data = f"http://127.0.0.1:5000/{qrid}"
+    qr_data = f"{URL}/{qrid}"
     img = qrcode.make(qr_data)
 
     buffered = BytesIO()
