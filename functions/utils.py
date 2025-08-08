@@ -1,6 +1,7 @@
 from flask import jsonify
 from io import BytesIO
 from dotenv import load_dotenv
+import os
 import qrcode
 import base64
 
