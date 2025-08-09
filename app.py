@@ -28,7 +28,7 @@ users = {
     },
 
     "user_2": {
-        "pin": 220906,
+        "pin": 222222,
         "id": 20062209,
         "name": "Giorgia D'Ortona"
     }
